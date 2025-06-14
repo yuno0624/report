@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>聖徳大レポート職人セット</title>
+  <style>
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+      padding: 1.5rem;
+      background: #fefefe;
+      color: #333;
+      line-height: 1.6;
+      max-width: 720px;
+      margin: auto;
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    .count {
+      font-weight: bold;
+      color: green;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+    #totalError {
+      color: crimson;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+    }
+    button {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      background: #0074cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    details {
+      background: #f0f8ff;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      border-left: 4px solid #0074cc;
+    }
+    summary {
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .checklist {
+      background: #f7f7f7;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 2rem;
+    }
+    .checklist label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+    @media (max-width: 600px) {
+      textarea {
+        height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>聖徳大学 通信教育部 レポートひな型</h1>
+
+  <details open>
+    <summary>📘 使い方ガイド（クリックで開閉）</summary>
+    <ul>
+      <li>各セクションに入力 → 文字数カウントがリアルタイム更新</li>
+      <li>入力内容はブラウザに保存（自動）→ スマホでも安心</li>
+      <li>「レポートチェック」ボタンで助詞や文字数のざっくり検査</li>
+      <li>総文字数は <strong>1500〜1600字</strong> が目安</li>
+      <li>参考文献欄の文字数はカウントされません</li>
+      <li>最後にチェックリストで提出条件を確認！</li>
+    </ul>
+  </details>
+
+  <div class="section">
+    <label for="intro">序論（目安：~320字）</label>
+    <textarea id="intro" placeholder="テーマの背景、目的、論点など"></textarea>
+    <p>文字数：<span id="introCount" class="count">0</span> 字</p>
+    <p id="introError" class="error"></p>
+  </div>
+
+  <div class="section">
+    <label for="body">本論（目安：~960字）</label>
+    <textarea id="body" placeholder="データ・資料に基づいた議論"></textarea>
+    <p>文字数：<span id="bodyCount" class="count">0</span> 字</p>
+    <p id="bodyError" class="error"></p>
+  </div>
+
+  <div class="section">
+    <label for="conclusion">結論（目安：~320字）</label>
+    <textarea id="conclusion" placeholder="要約、問いへの答え、今後の展望など"></textarea>
+    <p>文字数：<span id="conclusionCount" class="count">0</span> 字</p>
+    <p id="conclusionError" class="error"></p>
+  </div>
+
+  <div class="section">
+    <label for="references">参考文献（文字数には含まれません）</label>
+    <textarea id="references" placeholder="〈著者〉 書名、出版社、出版年、ページ or URL・閲覧日など"></textarea>
+  </div>
+
+  <button onclick="validate()">レポートチェック</button>
+
+  <div id="total">
+    <p><strong>総文字数：</strong><span id="totalCount">0</span> 字</p>
+    <p id="totalError"></p>
+  </div>
+
+  <div class="checklist">
+    <h2>✅ 提出直前チェックリスト</h2>
+    <label><input type="checkbox" id="chk1" /> 表紙を貼った</label>
+    <label><input type="checkbox" id="chk2" /> B5片面で印刷した</label>
+    <label><input type="checkbox" id="chk3" /> 総文字数1500〜1600字を満たしている</label>
+    <label><input type="checkbox" id="chk4" /> 引用は〈〉で括り、出典を明記した</label>
+    <label><input type="checkbox" id="chk5" /> 参考文献欄に全ての資料を記載した</label>
+    <label><input type="checkbox" id="chk6" /> 質問・要望など余計な内容を書いていない</label>
+  </div>
+
+  <script>
+    const sections = ['intro', 'body', 'conclusion']
+    const particleErrors = ['をは', 'にはは', 'にを', 'でが', 'がと', 'とは']
+    const minTotal = 1500
+    const maxTotal = 1600
+    const checklistIds = ['chk1', 'chk2', 'chk3', 'chk4', 'chk5', 'chk6']
+
+    const countChars = text => text.replace(/\s/g, '').length
+    const checkParticles = text => particleErrors.find(p => text.includes(p)) || ''
+
+    const saveDraft = () => {
+      sections.forEach(id => localStorage.setItem(id, document.getElementById(id).value))
+      localStorage.setItem('references', document.getElementById('references').value)
+      checklistIds.forEach(id => {
+        localStorage.setItem(id, document.getElementById(id).checked)
+      })
+    }
+
+    const loadDraft = () => {
+      sections.forEach(id => {
+        const val = localStorage.getItem(id)
+        if (val) document.getElementById(id).value = val
+      })
+      const ref = localStorage.getItem('references')
+      if (ref) document.getElementById('references').value = ref
+      checklistIds.forEach(id => {
+        const state = localStorage.getItem(id)
+        if (state !== null) document.getElementById(id).checked = state === 'true'
+      })
+    }
+
+    const validate = () => update(true)
+
+    const update = (showErrors = false) => {
+      let total = 0
+      sections.forEach(id => {
+        const text = document.getElementById(id).value
+        const count = countChars(text)
+        total += count
+        document.getElementById(id + 'Count').textContent = count
+
+        let errorMsg = ''
+        if (showErrors) {
+          if (!text.trim()) errorMsg = '⚠ 空欄です'
+          else {
+            const particle = checkParticles(text)
+            if (particle) errorMsg = `⚠ 助詞「${particle}」の使い方が不自然かも`
+            else if (!/[はをが]/.test(text)) errorMsg = '⚠ 「は」「を」「が」などが少ないかも'
+          }
+        }
+        document.getElementById(id + 'Error').textContent = errorMsg
+      })
+
+      document.getElementById('totalCount').textContent = total
+      const err = document.getElementById('totalError')
+      if (showErrors) {
+        if (total < minTotal || total > maxTotal) {
+          err.textContent = `⚠ 総文字数が基準外です（現在 ${total} 字／必要 1500〜1600 字）`
+        } else {
+          err.textContent = '✅ 総文字数は基準内です'
+        }
+      } else {
+        err.textContent = ''
+      }
+
+      saveDraft()
+    }
+
+    sections.concat(['references']).forEach(id =>
+      document.getElementById(id).addEventListener('input', () => update(false))
+    )
+
+    checklistIds.forEach(id => {
+      document.getElementById(id).addEventListener('change', saveDraft)
+    })
+
+    loadDraft()
+    update()
+  </script>
+</body>
+</html>
